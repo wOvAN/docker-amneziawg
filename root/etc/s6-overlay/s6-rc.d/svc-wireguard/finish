@@ -5,7 +5,7 @@ if [[ -f "/run/activeconfs" ]]; then
     . /run/activeconfs
     for tunnel in $(printf '%s\n' "${WG_CONFS[@]}" | tac | tr '\n' ' '; echo); do
         echo "**** Disabling tunnel ${tunnel} ****"
-        wg-quick down "${tunnel}" || :
+        awg-quick down "${tunnel}" || :
     done
     echo "**** All tunnels are down ****"
     rm -rf /run/activeconfs

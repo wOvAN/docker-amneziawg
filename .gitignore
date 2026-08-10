@@ -42,3 +42,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .jenkins-external
+
+# research scratch (cloned amneziawg repos)
+.info/
+task.txt
+
+AGENTS.md
+CLAUDE.md

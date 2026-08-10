@@ -3,15 +3,18 @@
 mkdir -p /config/{templates,coredns}
 
 echo "Uname info: $(uname -a)"
-# check for wireguard module
+# check for amneziawg kernel module
 ip link del dev test 2>/dev/null
-if ip link add dev test type wireguard; then
+if ip link add dev test type amneziawg; then
     ip link del dev test
     if capsh --current | grep "Current:" | grep -q "cap_sys_module"; then
-        echo "**** As the wireguard module is already active you can remove the SYS_MODULE capability from your container run/compose. ****"
+        echo "**** As the amneziawg module is already active you can remove the SYS_MODULE capability from your container run/compose. ****"
         echo "****     If your host does not automatically load the iptables module, you may still need the SYS_MODULE capability.     ****"
     fi
+elif command -v amneziawg-go >/dev/null; then
+    echo "**** The amneziawg kernel module is not active, using the amneziawg-go userspace implementation instead. ****"
+    echo "****     Make sure the /dev/net/tun device is passed through to the container.     ****"
 else
-    echo "**** The wireguard module is not active. If you believe that your kernel should have wireguard support already, make sure that it is activated via modprobe! ****"
+    echo "**** Neither the amneziawg kernel module nor the amneziawg-go userspace implementation is available. If you believe that your kernel should have amneziawg support already, make sure that it is activated via modprobe! ****"
     sleep infinity
 fi

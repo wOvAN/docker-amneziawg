@@ -1,11 +1,11 @@
 ---
 
 # project information
-project_name: wireguard
-project_url: "https://www.wireguard.com/"
-project_logo: "https://www.wireguard.com/img/wireguard.svg"
-project_blurb: "[WireGuard®]({{ project_url }}) is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography. It aims to be faster, simpler, leaner, and more useful than IPsec, while avoiding the massive headache. It intends to be considerably more performant than OpenVPN. WireGuard is designed as a general purpose VPN for running on embedded interfaces and super computers alike, fit for many different circumstances. Initially released for the Linux kernel, it is now cross-platform (Windows, macOS, BSD, iOS, Android) and widely deployable. It is currently under heavy development, but already it might be regarded as the most secure, easiest to use, and simplest VPN solution in the industry."
-project_lsio_github_repo_url: "https://github.com/linuxserver/docker-{{ project_name }}"
+project_name: amneziawg
+project_url: "https://github.com/amnezia-vpn/amneziawg-go"
+project_logo: "https://avatars.githubusercontent.com/u/74861536?v=4"
+project_blurb: "**This is a fork of [linuxserver/docker-wireguard](https://github.com/linuxserver/docker-wireguard) with the VPN engine replaced by [AmneziaWG]({{ project_url }}) (AWG 3.0)** — the management approach (env vars, templates, peer/QR flow, s6 services) is unchanged, only the tooling differs (`awg`/`awg-quick`/`amneziawg-go` instead of `wg`/`wg-quick`) and generated confs carry AWG 3.0 obfuscation parameters. AmneziaWG is a contemporary version of the WireGuard protocol, a fork of WireGuard-Go that offers protection against detection by Deep Packet Inspection (DPI) systems. It retains the simplified architecture and high performance of the original while adding advanced obfuscation methods (junk packets, message padding, header protection, content padding and randomized timings), allowing its traffic to blend seamlessly with regular internet traffic. The image runs as an amneziawg server or client via `awg`/`awg-quick`, using the kernel module when available and falling back to the amneziawg-go userspace implementation."
+project_lsio_github_repo_url: "https://github.com/wOvAN/docker-amneziawg"
 project_categories: "Network,VPN"
 # supported architectures
 available_architectures:
@@ -22,13 +22,13 @@ opt_param_volumes:
   - {vol_path: "/lib/modules", vol_host_path: "/lib/modules", desc: "Path to host kernel module for situations where it's not already loaded."}
 param_usage_include_ports: true
 param_ports:
-  - {external_port: "51820", internal_port: "51820/udp", port_desc: "wireguard port"}
+  - {external_port: "51820", internal_port: "51820/udp", port_desc: "amneziawg port"}
 cap_add_param: true
 cap_add_param_vars:
-  - {cap_add_var: "NET_ADMIN", desc: "Neccessary for Wireguard to create its VPN interface."}
+  - {cap_add_var: "NET_ADMIN", desc: "Neccessary for AmneziaWG to create its VPN interface."}
 opt_cap_add_param: true
 opt_cap_add_param_vars:
-  - {cap_add_var: "SYS_MODULE", desc: "Neccessary for loading Wireguard kernel module if it's not already loaded."}
+  - {cap_add_var: "SYS_MODULE", desc: "Neccessary for loading AmneziaWG kernel module if it's not already loaded."}
 custom_params:
   - {name: "sysctl", name_compose: "sysctls", value: ["net.ipv4.conf.all.src_valid_mark=1"], desc: "Required for client mode.", array: "true"}
 # optional container parameters
@@ -37,10 +37,10 @@ opt_param_env_vars:
   - {env_var: "SERVERURL", env_value: "wireguard.domain.com", desc: "External IP or domain name for docker host. Used in server mode. If set to `auto`, the container will try to determine and set the external IP automatically"}
   - {env_var: "SERVERPORT", env_value: "51820", desc: "External port for docker host. Used in server mode."}
   - {env_var: "PEERS", env_value: "1", desc: "Number of peers to create confs for. Required for server mode. Can also be a list of names: `myPC,myPhone,myTablet` (alphanumeric only)"}
-  - {env_var: "PEERDNS", env_value: "auto", desc: "DNS server set in peer/client configs (can be set as `8.8.8.8`). Used in server mode. Defaults to `auto`, which uses wireguard docker host's DNS via included CoreDNS forward."}
-  - {env_var: "INTERNAL_SUBNET", env_value: "10.13.13.0", desc: "Internal subnet for the wireguard and server and peers (only change if it clashes). Used in server mode."}
-  - {env_var: "ALLOWEDIPS", env_value: "0.0.0.0/0", desc: "The IPs/Ranges that the peers will be able to reach using the VPN connection. If not specified the default value is: '0.0.0.0/0, ::0/0' This will cause ALL traffic to route through the VPN, if you want split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's WG ip, such as 10.13.13.1."}
-  - {env_var: "PERSISTENTKEEPALIVE_PEERS", env_value: "", desc: "Set to `all` or a list of comma separated peers (ie. `1,4,laptop`) for the wireguard server to send keepalive packets to listed peers every 25 seconds. Useful if server is accessed via domain name and has dynamic IP. Used only in server mode."}
+  - {env_var: "PEERDNS", env_value: "auto", desc: "DNS server set in peer/client configs (can be set as `8.8.8.8`). Used in server mode. Defaults to `auto`, which uses docker host's DNS via included CoreDNS forward."}
+  - {env_var: "INTERNAL_SUBNET", env_value: "10.13.13.0", desc: "Internal subnet for the amneziawg and server and peers (only change if it clashes). Used in server mode."}
+  - {env_var: "ALLOWEDIPS", env_value: "0.0.0.0/0", desc: "The IPs/Ranges that the peers will be able to reach using the VPN connection. If not specified the default value is: '0.0.0.0/0, ::0/0' This will cause ALL traffic to route through the VPN, if you want split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's awg ip, such as 10.13.13.1."}
+  - {env_var: "PERSISTENTKEEPALIVE_PEERS", env_value: "", desc: "Set to `all` or a list of comma separated peers (ie. `1,4,laptop`) for the amneziawg server to send keepalive packets to listed peers every 25 seconds. Useful if server is accessed via domain name and has dynamic IP. Used only in server mode."}
   - {env_var: "LOG_CONFS", env_value: "true", desc: "Generated QR codes will be displayed in the docker log. Set to `false` to skip log output."}
 readonly_supported: true
 readonly_message: |
@@ -48,7 +48,9 @@ readonly_message: |
 # application setup block
 app_setup_block_enabled: true
 app_setup_block: |
-  During container start, it will first check if the wireguard module is already installed and loaded. All currently supported kernels should have the wireguard module built-in (along with some older custom kernels). However, the module may not be enabled. Make sure it is enabled prior to starting the container.
+  During container start, it will first check if the amneziawg kernel module is already installed and loaded. If it is not, the container will fall back to the amneziawg-go userspace implementation, which requires the `/dev/net/tun` device to be passed through to the container (`--device=/dev/net/tun`). The amneziawg kernel module is not built into stock kernels, so most users will run on the userspace implementation.
+
+  This image generates server and peer configs with AmneziaWG 3.0 obfuscation parameters (junk packets `Jc`/`Jmin`/`Jmax`, message padding `S1`-`S4`, magic headers `H1`-`H4`, `HeaderProtectionKey`, content padding and randomized rekey/keepalive timings) which are randomly generated once per server and shared between the server and peer configs, just like the server keys. The generated peer configs can be imported into the Amnezia VPN clients (desktop, mobile, iOS).
 
   This can be run as a server or a client, based on the parameters used.
 
@@ -68,6 +70,8 @@ app_setup_block: |
 
   The templates used for server and peer confs are saved under `/config/templates`. Advanced users can modify these templates and force conf generation by deleting `/config/wg_confs/wg0.conf` and restarting the container.
 
+  The AmneziaWG 3.0 obfuscation parameters are randomly generated once per server (along with the server keys) and stored in `/config/server/awgparams`. Both templates reference this file with a `$(cat /config/server/awgparams)` line, so the same parameters end up in the server conf and all peer confs (S1-S4, H1-H4 and HeaderProtectionKey must match between server and clients). Advanced users can replace that line in a template with explicit values, or edit the awgparams file and delete wg0.conf to regenerate the confs.
+
   The container managed server conf is hardcoded to `wg0.conf`. However, the users can add additional tunnel config files with `.conf` extensions into `/config/wg_confs/` and the container will attempt to start them all in alphabetical order. If any one of the tunnels fail, they will all be stopped and the default route will be deleted, requiring user intervention to fix the invalid conf and a container restart.
 
   ## Client Mode
@@ -78,9 +82,9 @@ app_setup_block: |
 
   ## Road warriors, roaming and returning home
 
-  If you plan to use Wireguard both remotely and locally, say on your mobile phone, you will need to consider routing. Most firewalls will not route ports forwarded on your WAN interface correctly to the LAN out of the box. This means that when you return home, even though you can see the Wireguard server, the return packets will probably get lost.
+  If you plan to use AmneziaWG both remotely and locally, say on your mobile phone, you will need to consider routing. Most firewalls will not route ports forwarded on your WAN interface correctly to the LAN out of the box. This means that when you return home, even though you can see the AmneziaWG server, the return packets will probably get lost.
 
-  This is not a Wireguard specific issue and the two generally accepted solutions are NAT reflection (setting your edge router/firewall up in such a way as it translates internal packets correctly) or split horizon DNS (setting your internal DNS to return the private rather than public IP when connecting locally).
+  This is not an AmneziaWG specific issue and the two generally accepted solutions are NAT reflection (setting your edge router/firewall up in such a way as it translates internal packets correctly) or split horizon DNS (setting your internal DNS to return the private rather than public IP when connecting locally).
 
   Both of these approaches have positives and negatives however their setup is out of scope for this document as everyone's network layout and equipment will be different.
 
@@ -88,15 +92,15 @@ app_setup_block: |
 
   ** Note: This is not a supported configuration by Linuxserver.io - use at your own risk.
 
-  When routing via Wireguard from another container using the `service` option in docker, you might lose access to the containers webUI locally. To avoid this, exclude the docker subnet from being routed via Wireguard by modifying your `wg0.conf` like so (modifying the subnets as you require):
+  When routing via AmneziaWG from another container using the `service` option in docker, you might lose access to the containers webUI locally. To avoid this, exclude the docker subnet from being routed via AmneziaWG by modifying your `wg0.conf` like so (modifying the subnets as you require):
 
     ```ini
     [Interface]
     PrivateKey = <private key>
     Address = 9.8.7.6/32
     DNS = 8.8.8.8
-    PostUp = DROUTE=$(ip route | grep default | awk '{print $3}'); HOMENET=192.168.0.0/16; HOMENET2=10.0.0.0/8; HOMENET3=172.16.0.0/12; ip route add $HOMENET3 via $DROUTE;ip route add $HOMENET2 via $DROUTE; ip route add $HOMENET via $DROUTE;iptables -I OUTPUT -d $HOMENET -j ACCEPT;iptables -A OUTPUT -d $HOMENET2 -j ACCEPT; iptables -A OUTPUT -d $HOMENET3 -j ACCEPT;  iptables -A OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT
-    PreDown = DROUTE=$(ip route | grep default | awk '{print $3}'); HOMENET=192.168.0.0/16; HOMENET2=10.0.0.0/8; HOMENET3=172.16.0.0/12; ip route del $HOMENET3 via $DROUTE;ip route del $HOMENET2 via $DROUTE; ip route del $HOMENET via $DROUTE; iptables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT; iptables -D OUTPUT -d $HOMENET -j ACCEPT; iptables -D OUTPUT -d $HOMENET2 -j ACCEPT; iptables -D OUTPUT -d $HOMENET3 -j ACCEPT
+    PostUp = DROUTE=$(ip route | grep default | awk '{print $3}'); HOMENET=192.168.0.0/16; HOMENET2=10.0.0.0/8; HOMENET3=172.16.0.0/12; ip route add $HOMENET3 via $DROUTE;ip route add $HOMENET2 via $DROUTE; ip route add $HOMENET via $DROUTE;iptables -I OUTPUT -d $HOMENET -j ACCEPT;iptables -A OUTPUT -d $HOMENET2 -j ACCEPT; iptables -A OUTPUT -d $HOMENET3 -j ACCEPT;  iptables -A OUTPUT ! -o %i -m mark ! --mark $(awg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT
+    PreDown = DROUTE=$(ip route | grep default | awk '{print $3}'); HOMENET=192.168.0.0/16; HOMENET2=10.0.0.0/8; HOMENET3=172.16.0.0/12; ip route del $HOMENET3 via $DROUTE;ip route del $HOMENET2 via $DROUTE; ip route del $HOMENET via $DROUTE; iptables -D OUTPUT ! -o %i -m mark ! --mark $(awg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT; iptables -D OUTPUT -d $HOMENET -j ACCEPT; iptables -D OUTPUT -d $HOMENET2 -j ACCEPT; iptables -D OUTPUT -d $HOMENET3 -j ACCEPT
     ```
 
   ## Site-to-site VPN
@@ -158,6 +162,7 @@ init_diagram: |
   "wireguard:latest" <- Base Images
 # changelog
 changelogs:
+  - {date: "08.08.26:", desc: "**Potentially Breaking Change:** Replace WireGuard with AmneziaWG (AWG 3.0). The image now ships `awg`/`awg-quick` and the `amneziawg-go` userspace implementation instead of wireguard-tools, and falls back to userspace mode when the amneziawg kernel module is not available (requires `/dev/net/tun`). Generated server and peer confs now include AWG 3.0 obfuscation parameters (Jc/Jmin/Jmax, S1-S4, H1-H4, HeaderProtectionKey, content padding, timings) generated once per server and stored in `/config/server/awgparams`. Existing configs are migrated automatically on first start; peer confs are compatible with the Amnezia VPN clients."}
   - {date: "05.07.26:", desc: "Rebase to Alpine 3.24."}
   - {date: "24.01.26:", desc: "Rebase to Alpine 3.23 again as openresolv alpine 3.23 package has now been updated."}
   - {date: "22.01.26:", desc: "Revert to Alpine 3.22 due to resolvconf bug."}

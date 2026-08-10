@@ -1,22 +1,20 @@
 ---
 
 # jenkins variables
-project_name: docker-wireguard
-external_type: alpine_repo
+project_name: docker-amneziawg
+external_type: github_commit
 release_type: stable
 release_tag: latest
 ls_branch: master
 repo_vars:
-  - CONTAINER_NAME = 'wireguard'
-  - BUILD_VERSION_ARG = 'WIREGUARD_RELEASE'
-  - LS_USER = 'linuxserver'
-  - LS_REPO = 'docker-wireguard'
-  - DOCKERHUB_IMAGE = 'linuxserver/wireguard'
-  - DEV_DOCKERHUB_IMAGE = 'lsiodev/wireguard'
-  - PR_DOCKERHUB_IMAGE = 'lspipepr/wireguard'
-  - DIST_IMAGE = 'alpine'
-  - DIST_REPO = 'http://dl-cdn.alpinelinux.org/alpine/v3.24/main/'
-  - DIST_REPO_PACKAGES = 'wireguard-tools'
+  - CONTAINER_NAME = 'amneziawg'
+  - BUILD_VERSION_ARG = 'AWG_RELEASE'
+  - LS_USER = 'amnezia-vpn'
+  - LS_REPO = 'amneziawg-tools'
+  - REPO_URL = 'https://github.com/amnezia-vpn/amneziawg-tools.git'
+  - DOCKERHUB_IMAGE = 'wovan/amneziawg'
+  - DEV_DOCKERHUB_IMAGE = 'wovandev/amneziawg'
+  - PR_DOCKERHUB_IMAGE = 'wovan/amneziawg-pr'
   - MULTIARCH='true'
   - CI='false'
   - CI_WEB='false'
@@ -27,4 +25,4 @@ repo_vars:
   - CI_AUTH=''
   - CI_WEBPATH=''
 sponsor_links:
-  - { name: "WireGuard", url: "https://www.wireguard.com/donations/" }
+  - { name: "Amnezia", url: "https://amnezia.org/en/donate" }

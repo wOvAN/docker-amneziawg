@@ -23,11 +23,66 @@ if ! grep -q 'PresharedKey' /config/templates/peer.conf; then
     sed -i 's|^Endpoint|PresharedKey = \$\(cat /config/\${PEER_ID}/presharedkey-\${PEER_ID}\)\nEndpoint|' /config/templates/peer.conf
 fi
 
+# one-time migration for existing wireguard installs: inject the awg params
+# reference into the user templates so regenerated confs get AWG 3.0 params
+migrate_templates () {
+    for template in /config/templates/server.conf /config/templates/peer.conf; do
+        if [[ -f "${template}" ]] && ! grep -q 'awgparams' "${template}"; then
+            echo "**** Adding amneziawg params to ${template} ****"
+            sed -i '/^\[Interface\]/a$(cat /config/server/awgparams)' "${template}"
+        fi
+    done
+}
+
+# generate AWG 3.0 obfuscation params once per server. Values mirror what the
+# official Amnezia client generates: random junk/header values, header
+# protection key, and timings. S1-S4, H1-H4 and HeaderProtectionKey must match
+# on server and clients, which is why they are shared via a single file.
+ensure_awg_params () {
+    umask 077
+    local jc jmin jmax s1 s2 s3 s4
+    jc=$((RANDOM % 3 + 4))
+    jmin=10
+    jmax=50
+    # keep packet sizes unique so they cannot be fingerprinted
+    s1=$((RANDOM % 138 + 12))
+    s2=$((RANDOM % 138 + 12))
+    while [[ ${s2} -eq ${s1} ]] || [[ ${s2} -eq 12 ]] || [[ $((s1 + 148)) -eq $((s2 + 92)) ]]; do
+        s2=$((RANDOM % 138 + 12))
+    done
+    s3=$((RANDOM % 52 + 12))
+    while [[ ${s3} -eq ${s1} ]] || [[ ${s3} -eq ${s2} ]] || [[ ${s3} -eq 12 ]] || [[ $((s1 + 148)) -eq $((s3 + 64)) ]] || [[ $((s2 + 92)) -eq $((s3 + 64)) ]]; do
+        s3=$((RANDOM % 52 + 12))
+    done
+    s4=12
+    {
+        printf 'Jc = %s\n' "${jc}"
+        printf 'Jmin = %s\n' "${jmin}"
+        printf 'Jmax = %s\n' "${jmax}"
+        printf 'S1 = %s\n' "${s1}"
+        printf 'S2 = %s\n' "${s2}"
+        printf 'S3 = %s\n' "${s3}"
+        printf 'S4 = %s\n' "${s4}"
+        printf 'H1 = 1\nH2 = 2\nH3 = 3\nH4 = 4\n'
+        printf 'HeaderProtectionKey = %s\n' "$(awg genkey)"
+        printf 'ContentPaddingAddition = 10-100\n'
+        printf 'RekeyAfterTime = 100-120\n'
+        printf 'RekeyTimeout = 3-7\n'
+        printf 'RejectAfterTime = 150-180\n'
+        printf 'KeepaliveTimeout = 5-15\n'
+        printf 'MaxHandshakeAttempts = 15-20\n'
+    } > /config/server/awgparams
+    echo "**** Generated AmneziaWG 3.0 parameters (Jc/Jmin/Jmax, S1-S4, H1-H4, HeaderProtectionKey, timings) stored in /config/server/awgparams ****"
+}
+
 generate_confs () {
     mkdir -p /config/server
     if [[ ! -f /config/server/privatekey-server ]]; then
         umask 077
-        wg genkey | tee /config/server/privatekey-server | wg pubkey > /config/server/publickey-server
+        awg genkey | tee /config/server/privatekey-server | awg pubkey > /config/server/publickey-server
+    fi
+    if [[ ! -f /config/server/awgparams ]]; then
+        ensure_awg_params
     fi
     eval "$(printf %s)
     cat <<DUDE > /config/wg_confs/wg0.conf
@@ -46,8 +101,8 @@ DUDE"
             mkdir -p "/config/${PEER_ID}"
             if [[ ! -f "/config/${PEER_ID}/privatekey-${PEER_ID}" ]]; then
                 umask 077
-                wg genkey | tee "/config/${PEER_ID}/privatekey-${PEER_ID}" | wg pubkey > "/config/${PEER_ID}/publickey-${PEER_ID}"
-                wg genpsk > "/config/${PEER_ID}/presharedkey-${PEER_ID}"
+                awg genkey | tee "/config/${PEER_ID}/privatekey-${PEER_ID}" | awg pubkey > "/config/${PEER_ID}/publickey-${PEER_ID}"
+                awg genpsk > "/config/${PEER_ID}/presharedkey-${PEER_ID}"
             fi
             if [[ -f "/config/${PEER_ID}/${PEER_ID}.conf" ]]; then
                 CLIENT_IP=$(grep "Address" "/config/${PEER_ID}/${PEER_ID}.conf" | awk '{print $NF}')
@@ -162,11 +217,16 @@ if [[ -n "$PEERS" ]]; then
     echo "**** AllowedIPs for peers $ALLOWEDIPS ****"
     if [[ -z "$PEERDNS" ]] || [[ "$PEERDNS" = "auto" ]]; then
         PEERDNS="${INTERFACE}.1"
-        echo "**** PEERDNS var is either not set or is set to \"auto\", setting peer DNS to ${INTERFACE}.1 to use wireguard docker host's DNS. ****"
+        echo "**** PEERDNS var is either not set or is set to \"auto\", setting peer DNS to ${INTERFACE}.1 to use docker host's DNS. ****"
     else
         echo "**** Peer DNS servers will be set to $PEERDNS ****"
     fi
-    if [[ ! -f /config/wg_confs/wg0.conf ]]; then
+    if [[ ! -f /config/server/awgparams ]]; then
+        echo "**** No amneziawg parameters found (fresh install or upgrade from the wireguard image), generating them and (re)generating confs ****"
+        migrate_templates
+        generate_confs
+        save_vars
+    elif [[ ! -f /config/wg_confs/wg0.conf ]]; then
         echo "**** No wg0.conf found (maybe an initial install), generating 1 server and ${PEERS} peer/client confs ****"
         generate_confs
         save_vars

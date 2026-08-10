@@ -1,19 +1,33 @@
 # syntax=docker/dockerfile:1
 
+FROM golang:1.25.12 AS awg-build
+ARG AWG_RELEASE=v3.0.20260805
+RUN git clone https://github.com/amnezia-vpn/amneziawg-go.git /awg && \
+    cd /awg && git checkout ${AWG_RELEASE} && \
+    go mod download && go mod verify && \
+    go build -ldflags '-linkmode external -extldflags "-fno-PIC -static"' -v -o /usr/bin
+
+FROM alpine:3.24 AS awg-tools-build
+ARG AWG_RELEASE=v3.0.20260805
+RUN apk add --no-cache git build-base linux-headers && \
+    git clone https://github.com/amnezia-vpn/amneziawg-tools.git /amneziawg-tools && \
+    cd /amneziawg-tools && git checkout ${AWG_RELEASE} && \
+    cd src && make
+
 FROM ghcr.io/linuxserver/baseimage-alpine:3.24
 
 # set version label
 ARG BUILD_DATE
 ARG VERSION
-ARG WIREGUARD_RELEASE
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="thespad"
 
+# install amneziawg (awg, awg-quick userspace tools and amneziawg-go userspace implementation)
+COPY --from=awg-build /usr/bin/amneziawg-go /usr/bin/amneziawg-go
+COPY --from=awg-tools-build /amneziawg-tools/src/wg /usr/bin/awg
+COPY --from=awg-tools-build /amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
+
 RUN \
-  if [ -z "${WIREGUARD_RELEASE+x}" ]; then \
-  WIREGUARD_RELEASE=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp \
-    && awk '/^P:wireguard-tools$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://'); \
-  fi && \
   echo "**** install dependencies ****" && \
   apk add --no-cache \
     bc \
@@ -28,11 +42,12 @@ RUN \
     libqrencode-tools \
     net-tools \
     nftables \
-    openresolv \
-    wireguard-tools==${WIREGUARD_RELEASE} && \
-  echo "wireguard" >> /etc/modules && \
-  rm -rf /etc/wireguard && \
-  ln -s /config/wg_confs /etc/wireguard && \
+    openresolv && \
+  chmod 755 /usr/bin/awg /usr/bin/awg-quick && \
+  echo "amneziawg" >> /etc/modules && \
+  rm -rf /etc/amnezia && \
+  mkdir -p /etc/amnezia && \
+  ln -s /config/wg_confs /etc/amnezia/amneziawg && \
   printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \
   echo "**** clean up ****" && \
   rm -rf \

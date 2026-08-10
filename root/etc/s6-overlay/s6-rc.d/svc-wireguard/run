@@ -22,7 +22,7 @@ fi
 unset FAILED
 for tunnel in "${WG_CONFS[@]}"; do
     echo "**** Activating tunnel ${tunnel} ****"
-    if ! wg-quick up "${tunnel}"; then
+    if ! awg-quick up "${tunnel}"; then
         FAILED="${tunnel}"
         break
     fi
@@ -38,7 +38,7 @@ else
             break
         else
             echo "**** Disabling tunnel ${tunnel} ****"
-            wg-quick down "${tunnel}" || :
+            awg-quick down "${tunnel}" || :
         fi
     done
     ip route del default

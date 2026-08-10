@@ -1,6 +1,9 @@
 name: Build
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
   schedule:
     - cron: '23 2 * * *'
@@ -21,6 +24,28 @@ jobs:
           TAG=$(curl -s https://api.github.com/repos/amnezia-vpn/amneziawg-tools/releases/latest | jq -r .tag_name)
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
+      - name: Compose image tags
+        id: tags
+        env:
+          AWG_TAG: ${{ steps.awg.outputs.tag }}
+        run: |
+          compose() {
+            {
+              printf '%s:latest\n' "$1"
+              printf '%s:%s\n' "$1" "${AWG_TAG}"
+              # repo tag (e.g. v1.0) becomes an extra immutable image tag; skip if same as upstream version
+              if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" != "${AWG_TAG}" ]]; then
+                printf '%s:%s\n' "$1" "${GITHUB_REF_NAME}"
+              fi
+            } > "$2"
+          }
+          compose ghcr.io/wovan/docker-amneziawg /tmp/tags-ghcr
+          compose wovan/amneziawg /tmp/tags-hub
+          {
+            printf 'ghcr<<EOF\n'; cat /tmp/tags-ghcr; printf 'EOF\n'
+            printf 'hub<<EOF\n'; cat /tmp/tags-hub; printf 'EOF\n'
+          } >> "${GITHUB_OUTPUT}"
+
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
@@ -40,9 +65,7 @@ jobs:
             AWG_RELEASE=${{ steps.awg.outputs.tag }}
             VERSION=${{ steps.awg.outputs.tag }}
           push: true
-          tags: |
-            ghcr.io/wovan/docker-amneziawg:latest
-            ghcr.io/wovan/docker-amneziawg:${{ steps.awg.outputs.tag }}
+          tags: ${{ steps.tags.outputs.ghcr }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -70,7 +93,5 @@ jobs:
             AWG_RELEASE=${{ steps.awg.outputs.tag }}
             VERSION=${{ steps.awg.outputs.tag }}
           push: true
-          tags: |
-            wovan/amneziawg:latest
-            wovan/amneziawg:${{ steps.awg.outputs.tag }}
+          tags: ${{ steps.tags.outputs.hub }}
           cache-from: type=gha

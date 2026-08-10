@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  IMAGE: awg-test
+  AWG_RELEASE: v3.0.20260805
+
+tasks:
+  default:
+    desc: Build the image locally
+    cmds:
+      - task: build
+
+  build:
+    desc: Build the image locally (multi-stage, pins AWG_RELEASE)
+    cmds:
+      - docker build --pull -t {{.IMAGE}} --build-arg AWG_RELEASE={{.AWG_RELEASE}} .

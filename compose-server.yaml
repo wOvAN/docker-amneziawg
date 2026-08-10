@@ -1,0 +1,33 @@
+# Example: run the image as an AmneziaWG VPN SERVER.
+# Usage: docker compose -f compose-server.yaml up -d
+services:
+  amneziawg:
+    image: ghcr.io/wovan/docker-amneziawg:latest
+    container_name: amneziawg-server
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      # Public IP or FQDN peers will connect to (use `auto` only if the
+      # container can detect it, e.g. with network_mode: host)
+      - SERVERURL=vpn.example.com
+      - SERVERPORT=51820
+      # Number of peers to generate client configs for
+      - PEERS=5
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0
+      # Subnets routed through the tunnel for peers; full tunnel = 0.0.0.0/0
+      - ALLOWEDIPS=0.0.0.0/0
+      # Print generated peer configs to the log (first start)
+      - LOG_CONFS=true
+    volumes:
+      - ./config:/config          # server keys, wg_confs/, templates/, peer dirs
+      - /lib/modules:/lib/modules:ro   # host kernel modules (amneziawg module)
+    ports:
+      - "51820:51820/udp"
+    devices:
+      - /dev/net/tun:/dev/net/tun  # needed for the amneziawg-go userspace fallback
+    restart: unless-stopped

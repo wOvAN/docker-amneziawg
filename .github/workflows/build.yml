@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 2 * * *'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest AWG release tag
+        id: awg
+        run: |
+          TAG=$(curl -s https://api.github.com/repos/amnezia-vpn/amneziawg-tools/releases/latest | jq -r .tag_name)
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (GHCR)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            AWG_RELEASE=${{ steps.awg.outputs.tag }}
+            VERSION=${{ steps.awg.outputs.tag }}
+          push: true
+          tags: |
+            ghcr.io/wovan/docker-amneziawg:latest
+            ghcr.io/wovan/docker-amneziawg:${{ steps.awg.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Docker Hub push needs DOCKERHUB_USERNAME/DOCKERHUB_TOKEN repo secrets;
+      # without them this step is skipped and only GHCR gets the image.
+      - name: Login Docker Hub
+        if: env.HUB_TOKEN != ''
+        env:
+          HUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          HUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.HUB_USERNAME }}
+          password: ${{ env.HUB_TOKEN }}
+
+      - name: Build and push (Docker Hub)
+        if: env.HUB_TOKEN != ''
+        env:
+          HUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            AWG_RELEASE=${{ steps.awg.outputs.tag }}
+            VERSION=${{ steps.awg.outputs.tag }}
+          push: true
+          tags: |
+            wovan/amneziawg:latest
+            wovan/amneziawg:${{ steps.awg.outputs.tag }}
+          cache-from: type=gha

@@ -34,10 +34,15 @@ migrate_templates () {
     done
 }
 
+# CPS protocol-imitation signature for handshake packets: a fake DNS response
+# prefix (random 2-byte transaction id + fixed reply body), identical to the
+# default chain the official Amnezia client uses.
+readonly AWG_I1_CHAIN='<r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>'
+
 # generate AWG 3.0 obfuscation params once per server. Values mirror what the
 # official Amnezia client generates: random junk/header values, header
-# protection key, and timings. S1-S4, H1-H4 and HeaderProtectionKey must match
-# on server and clients, which is why they are shared via a single file.
+# protection key, and timings. S1-S4, H1-H4, I1 and HeaderProtectionKey must
+# match on server and clients, which is why they are shared via a single file.
 ensure_awg_params () {
     umask 077
     local jc jmin jmax s1 s2 s3 s4
@@ -65,6 +70,7 @@ ensure_awg_params () {
         printf 'S4 = %s\n' "${s4}"
         printf 'H1 = 1\nH2 = 2\nH3 = 3\nH4 = 4\n'
         printf 'HeaderProtectionKey = %s\n' "$(awg genkey)"
+        printf 'I1 = %s\n' "${AWG_I1_CHAIN}"
         printf 'ContentPaddingAddition = 10-100\n'
         printf 'RekeyAfterTime = 100-120\n'
         printf 'RekeyTimeout = 3-7\n'
@@ -72,7 +78,7 @@ ensure_awg_params () {
         printf 'KeepaliveTimeout = 5-15\n'
         printf 'MaxHandshakeAttempts = 15-20\n'
     } > /config/server/awgparams
-    echo "**** Generated AmneziaWG 3.0 parameters (Jc/Jmin/Jmax, S1-S4, H1-H4, HeaderProtectionKey, timings) stored in /config/server/awgparams ****"
+    echo "**** Generated AmneziaWG 3.0 parameters (Jc/Jmin/Jmax, S1-S4, H1-H4, I1, HeaderProtectionKey, timings) stored in /config/server/awgparams ****"
 }
 
 generate_confs () {
@@ -228,6 +234,12 @@ if [[ -n "$PEERS" ]]; then
         save_vars
     elif [[ ! -f /config/wg_confs/wg0.conf ]]; then
         echo "**** No wg0.conf found (maybe an initial install), generating 1 server and ${PEERS} peer/client confs ****"
+        generate_confs
+        save_vars
+    elif ! grep -q '^I1' /config/server/awgparams; then
+        # one-time migration: existing awgparams predate the CPS signature
+        echo "**** Adding I1 protocol-imitation signature to awgparams and regenerating confs ****"
+        printf 'I1 = %s\n' "${AWG_I1_CHAIN}" >> /config/server/awgparams
         generate_confs
         save_vars
     else

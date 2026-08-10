@@ -28,6 +28,10 @@ The architectures supported by this image are:
 
 During container start, it will first check if the amneziawg kernel module is already installed and loaded. If it is not, the container will fall back to the amneziawg-go userspace implementation, which requires the `/dev/net/tun` device to be passed through to the container (`--device=/dev/net/tun`). The amneziawg kernel module is not built into stock kernels, so most users will run on the userspace implementation.
 
+### Kernel module (optional)
+
+If you want to use the amneziawg kernel module instead of the userspace fallback, you need to compile and load it on your host. The kernel module is maintained separately: [amnezia-vpn/amneziawg-linux-kernel-module](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module). Follow the build instructions in that repository for your kernel version, then load it with `modprobe amneziawg`. When the module is active, the container can drop the `SYS_MODULE` capability (but you may still need it if your host does not auto-load the iptables modules).
+
 This image generates server and peer configs with AmneziaWG 3.0 obfuscation parameters (junk packets `Jc`/`Jmin`/`Jmax`, message padding `S1`-`S4`, magic headers `H1`-`H4`, `HeaderProtectionKey`, content padding and randomized rekey/keepalive timings) which are randomly generated once per server and shared between the server and peer configs, just like the server keys. The generated peer configs can be imported into the Amnezia VPN clients (desktop, mobile, iOS).
 
 This can be run as a server or a client, based on the parameters used.

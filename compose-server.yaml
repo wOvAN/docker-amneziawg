@@ -30,4 +30,4 @@ services:
       - "51820:51820/udp"
     devices:
       - /dev/net/tun:/dev/net/tun  # needed for the amneziawg-go userspace fallback
-    restart: unless-stopped
+    restart: always

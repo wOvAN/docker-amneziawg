@@ -8,6 +8,7 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+      - SYS_ADMIN
     environment:
       - PUID=1000
       - PGID=1000
@@ -18,4 +19,4 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     # no ports: the tunnel is outbound-only from this container
-    restart: unless-stopped
+    restart: always

@@ -20,7 +20,7 @@ services:
       - PEERDNS=auto
       - INTERNAL_SUBNET=10.13.13.0
       # Subnets routed through the tunnel for peers; full tunnel = 0.0.0.0/0
-      - ALLOWEDIPS=0.0.0.0/0
+      - ALLOWEDIPS=0.0.0.0/0,::/0
       # Print generated peer configs to the log (first start)
       - LOG_CONFS=true
     volumes:

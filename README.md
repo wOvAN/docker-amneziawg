@@ -136,7 +136,7 @@ services:
       - PEERS=1 #optional
       - PEERDNS=auto #optional
       - INTERNAL_SUBNET=10.13.13.0 #optional
-      - ALLOWEDIPS=0.0.0.0/0 #optional
+      - ALLOWEDIPS=0.0.0.0/0,::/0 #optional
       - PERSISTENTKEEPALIVE_PEERS= #optional
       - LOG_CONFS=true #optional
     volumes:
@@ -165,7 +165,7 @@ docker run -d \
   -e PEERS=1 `#optional` \
   -e PEERDNS=auto `#optional` \
   -e INTERNAL_SUBNET=10.13.13.0 `#optional` \
-  -e ALLOWEDIPS=0.0.0.0/0 `#optional` \
+  -e ALLOWEDIPS=0.0.0.0/0,::/0 `#optional` \
   -e PERSISTENTKEEPALIVE_PEERS= `#optional` \
   -e LOG_CONFS=true `#optional` \
   -p 51820:51820/udp \
@@ -191,7 +191,7 @@ Containers are configured using parameters passed at runtime (such as those abov
 | `-e PEERS=1` | Number of peers to create confs for. Required for server mode. Can also be a list of names: `myPC,myPhone,myTablet` (alphanumeric only) |
 | `-e PEERDNS=auto` | DNS server set in peer/client configs (can be set as `8.8.8.8`). Used in server mode. Defaults to `auto`, which uses docker host's DNS via included CoreDNS forward. |
 | `-e INTERNAL_SUBNET=10.13.13.0` | Internal subnet for the amneziawg and server and peers (only change if it clashes). Used in server mode. |
-| `-e ALLOWEDIPS=0.0.0.0/0` | The IPs/Ranges that the peers will be able to reach using the VPN connection. If not specified the default value is: '0.0.0.0/0, ::0/0' This will cause ALL traffic to route through the VPN, if you want split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's awg ip, such as 10.13.13.1. |
+| `-e ALLOWEDIPS=0.0.0.0/0,::/0` | The IPs/Ranges that the peers will be able to reach using the VPN connection. Default is `0.0.0.0/0,::/0` which routes all traffic (including IPv6) through the VPN — required to prevent IPv6 DNS/WebRTC leaks. For split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's awg ip, such as `10.13.13.1,::/0`. |
 | `-e PERSISTENTKEEPALIVE_PEERS=` | Set to `all` or a list of comma separated peers (ie. `1,4,laptop`) for the amneziawg server to send keepalive packets to listed peers every 25 seconds. Useful if server is accessed via domain name and has dynamic IP. Used only in server mode. |
 | `-e LOG_CONFS=true` | Generated QR codes will be displayed in the docker log. Set to `false` to skip log output. |
 | `-v /config` | Contains all relevant configuration files. |

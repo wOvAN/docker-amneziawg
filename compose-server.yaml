@@ -17,10 +17,20 @@ services:
       - SERVERPORT=51820
       # Number of peers to generate client configs for
       - PEERS=5
-      - PEERDNS=auto
+      # - PEERS=peer01,peer02
+      - PEERDNS=auto 
+      # - PEERDNS=1.0.0.1,8.8.8.8
+      # Send keepalives every 25s to all peers (or a comma-separated list of peer names, e.g. peer01,peer02)
+      - PERSISTENTKEEPALIVE_PEERS=all  #optional
       - INTERNAL_SUBNET=10.13.13.0
       # Subnets routed through the tunnel for peers; full tunnel = 0.0.0.0/0
       - ALLOWEDIPS=0.0.0.0/0,::/0
+      # NOTE: AllowedIPs is include-only (longest-prefix match) — there is no
+      # "everything except LAN" form. Split-tunnel alternative: list only the
+      # subnets you want via VPN, always keeping the server's own awg IP:
+      # - ALLOWEDIPS=10.13.13.1,192.168.100.0/24
+      # Or keep the full tunnel and exclude LAN ranges with client-side routes
+      # (see README "Maintaining local access to attached services").
       # Print generated peer configs to the log (first start)
       - LOG_CONFS=true
     volumes:

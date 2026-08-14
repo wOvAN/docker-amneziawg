@@ -1,0 +1,39 @@
+# Example: AmneziaWG VPN client as a gateway for the Linux host.
+#
+# The container runs in host network mode and creates a tun0 interface on the
+# host. Traffic from other containers (or the host itself) is routed through
+# the tunnel via iptables.
+#
+# Architecture:
+#   other containers / host  ──►  docker0 bridge  ──►  iptables NAT  ──►  tun0  ──►  Internet
+#
+# Prerequisites (run on the host after `docker compose up`):
+#   sysctl -w net.ipv4.ip_forward=1
+#   iptables -t nat -A POSTROUTING -s 172.20.0.0/24 -o tun0 -j MASQUERADE
+#   iptables -A FORWARD -i tun0 -j ACCEPT
+#   iptables -A FORWARD -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+#
+# Usage:
+#   1. Drop .conf files into ./config/wg_confs/
+#   2. cd examples/gateway && docker compose up -d
+#   3. Run the iptables commands above (or add them to /etc/rc.local or a systemd service)
+
+services:
+  amneziawg-client:
+    image: ghcr.io/wovan/docker-amneziawg:latest
+    container_name: amneziawg-client
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      - SYS_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./config:/config
+      - /lib/modules:/lib/modules:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: always

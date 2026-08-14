@@ -1,6 +1,6 @@
 # Example: run the image as an AmneziaWG VPN CLIENT.
-# Drop one or more .conf files into ./client-config/wg_confs/ and start.
-# Usage: docker compose -f client-compose.yaml up -d
+# Drop one or more .conf files into ./config/wg_confs/ and start.
+# Usage: cd examples/client && docker compose up -d
 services:
   amneziawg-client:
     image: ghcr.io/wovan/docker-amneziawg:latest
@@ -14,7 +14,7 @@ services:
       - PGID=1000
       - TZ=Etc/UTC
     volumes:
-      - ./client-config:/config   # put your confs in ./client-config/wg_confs/
+      - ./config:/config   # put your confs in ./config/wg_confs/
       - /lib/modules:/lib/modules:ro
     devices:
       - /dev/net/tun:/dev/net/tun

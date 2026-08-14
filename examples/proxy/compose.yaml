@@ -1,0 +1,41 @@
+# Example: proxy traffic through the AmneziaWG VPN client using 3proxy.
+#
+# Architecture:
+#   3proxy (SOCKS5/HTTP)  ──►  amneziawg-client (tun0 tunnel)  ──►  Internet
+#
+# 3proxy shares the VPN container's network namespace (network_mode:
+# service:amneziawg-client), so all proxied traffic exits via the tunnel.
+#
+# Usage:
+#   1. Drop .conf files into ./config/wg_confs/
+#   2. cd examples/proxy && docker compose up -d
+#   3. Point a browser or app at host:1080 (SOCKS5) or host:3128 (HTTP)
+
+services:
+  amneziawg-client:
+    image: ghcr.io/wovan/docker-amneziawg:latest
+    container_name: amneziawg-client
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      - SYS_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./config:/config
+      - /lib/modules:/lib/modules:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: always
+
+  3proxy:
+    image: 3proxy/3proxy:latest
+    container_name: amneziawg-proxy
+    network_mode: "service:amneziawg-client"
+    volumes:
+      - ./3proxy.cfg:/etc/3proxy/3proxy.cfg:ro
+    depends_on:
+      - amneziawg-client
+    restart: always

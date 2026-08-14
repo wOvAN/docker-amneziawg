@@ -1,5 +1,5 @@
 # Example: run the image as an AmneziaWG VPN SERVER.
-# Usage: docker compose -f compose-server.yaml up -d
+# Usage: cd examples/server && docker compose up -d
 services:
   amneziawg:
     image: ghcr.io/wovan/docker-amneziawg:latest

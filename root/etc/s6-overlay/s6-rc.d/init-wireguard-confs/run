@@ -24,7 +24,7 @@ if ! grep -q 'PresharedKey' /config/templates/peer.conf; then
 fi
 
 # one-time migration for existing wireguard installs: inject the awg params
-# reference into the user templates so regenerated confs get AWG 3.0 params
+# reference into the user templates so regenerated confs get AWG 3.1 params
 migrate_templates () {
     for template in /config/templates/server.conf /config/templates/peer.conf; do
         if [[ -f "${template}" ]] && ! grep -q 'awgparams' "${template}"; then
@@ -39,10 +39,13 @@ migrate_templates () {
 # default chain the official Amnezia client uses.
 readonly AWG_I1_CHAIN='<r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>'
 
-# generate AWG 3.0 obfuscation params once per server. Values mirror what the
+# generate AWG 3.1 obfuscation params once per server. Values mirror what the
 # official Amnezia client generates: random junk/header values, header
-# protection key, and timings. S1-S4, H1-H4, I1 and HeaderProtectionKey must
-# match on server and clients, which is why they are shared via a single file.
+# protection key, and timings. S1-S4, H1-H4, I1, HeaderProtectionKey,
+# RandomTrailers and DisableCookies must match on server and clients, which is
+# why they are shared via a single file. RandomTrailers (random bytes appended
+# to each packet) and DisableCookies (no cookie replies) follow the official
+# client defaults (both on).
 ensure_awg_params () {
     umask 077
     local jc jmin jmax s1 s2 s3 s4
@@ -77,8 +80,10 @@ ensure_awg_params () {
         printf 'RejectAfterTime = 150-180\n'
         printf 'KeepaliveTimeout = 5-15\n'
         printf 'MaxHandshakeAttempts = 15-20\n'
+        printf 'RandomTrailers = on\n'
+        printf 'DisableCookies = on\n'
     } > /config/server/awgparams
-    echo "**** Generated AmneziaWG 3.0 parameters (Jc/Jmin/Jmax, S1-S4, H1-H4, I1, HeaderProtectionKey, timings) stored in /config/server/awgparams ****"
+    echo "**** Generated AmneziaWG 3.1 parameters (Jc/Jmin/Jmax, S1-S4, H1-H4, I1, HeaderProtectionKey, timings, RandomTrailers, DisableCookies) stored in /config/server/awgparams ****"
 }
 
 generate_confs () {
@@ -240,6 +245,13 @@ if [[ -n "$PEERS" ]]; then
         # one-time migration: existing awgparams predate the CPS signature
         echo "**** Adding I1 protocol-imitation signature to awgparams and regenerating confs ****"
         printf 'I1 = %s\n' "${AWG_I1_CHAIN}" >> /config/server/awgparams
+        generate_confs
+        save_vars
+    elif ! grep -q '^RandomTrailers' /config/server/awgparams; then
+        # one-time migration: existing awgparams predate AWG 3.1. Peers must
+        # re-import their configs, since packet sizes change with trailers
+        echo "**** Adding AWG 3.1 parameters (RandomTrailers, DisableCookies) to awgparams and regenerating confs ****"
+        printf 'RandomTrailers = on\nDisableCookies = on\n' >> /config/server/awgparams
         generate_confs
         save_vars
     else

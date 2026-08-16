@@ -4,7 +4,8 @@ version: '3'
 
 vars:
   IMAGE: awg-test
-  AWG_RELEASE: v3.0.20260805
+  AWG_RELEASE: v3.1.20260814
+  AWG_TOOLS_RELEASE: v3.1.20260812
 
 tasks:
   default:
@@ -13,6 +14,6 @@ tasks:
       - task: build
 
   build:
-    desc: Build the image locally (multi-stage, pins AWG_RELEASE)
+    desc: Build the image locally (multi-stage, pins AWG_RELEASE and AWG_TOOLS_RELEASE)
     cmds:
-      - docker build --pull -t {{.IMAGE}} --build-arg AWG_RELEASE={{.AWG_RELEASE}} .
+      - docker build --pull -t {{.IMAGE}} --build-arg AWG_RELEASE={{.AWG_RELEASE}} --build-arg AWG_TOOLS_RELEASE={{.AWG_TOOLS_RELEASE}} .

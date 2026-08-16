@@ -18,11 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get latest AWG release tag
+      - name: Get latest AWG release tags
         id: awg
         run: |
-          TAG=$(curl -s https://api.github.com/repos/amnezia-vpn/amneziawg-tools/releases/latest | jq -r .tag_name)
-          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          # amneziawg-tools publishes GitHub releases; amneziawg-go only tags,
+          # and the two repos tag independently, so fetch each separately
+          TOOLS_TAG=$(curl -s https://api.github.com/repos/amnezia-vpn/amneziawg-tools/releases/latest | jq -r .tag_name)
+          GO_TAG=$(curl -s 'https://api.github.com/repos/amnezia-vpn/amneziawg-go/tags?per_page=100' | jq -r '.[].name' | sort -V | tail -1)
+          echo "tag=${TOOLS_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "go_tag=${GO_TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Compose image tags
         id: tags
@@ -62,7 +66,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           build-args: |
-            AWG_RELEASE=${{ steps.awg.outputs.tag }}
+            AWG_RELEASE=${{ steps.awg.outputs.go_tag }}
+            AWG_TOOLS_RELEASE=${{ steps.awg.outputs.tag }}
             VERSION=${{ steps.awg.outputs.tag }}
           push: true
           tags: ${{ steps.tags.outputs.ghcr }}
@@ -90,7 +95,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           build-args: |
-            AWG_RELEASE=${{ steps.awg.outputs.tag }}
+            AWG_RELEASE=${{ steps.awg.outputs.go_tag }}
+            AWG_TOOLS_RELEASE=${{ steps.awg.outputs.tag }}
             VERSION=${{ steps.awg.outputs.tag }}
           push: true
           tags: ${{ steps.tags.outputs.hub }}

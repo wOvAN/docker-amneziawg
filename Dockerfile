@@ -1,17 +1,17 @@
 # syntax=docker/dockerfile:1
 
 FROM golang:1.25.12 AS awg-build
-ARG AWG_RELEASE=v3.0.20260805
+ARG AWG_RELEASE=v3.1.20260814
 RUN git clone https://github.com/amnezia-vpn/amneziawg-go.git /awg && \
     cd /awg && git checkout ${AWG_RELEASE} && \
     go mod download && go mod verify && \
     go build -ldflags '-linkmode external -extldflags "-fno-PIC -static"' -v -o /usr/bin
 
 FROM alpine:3.24 AS awg-tools-build
-ARG AWG_RELEASE=v3.0.20260805
+ARG AWG_TOOLS_RELEASE=v3.1.20260812
 RUN apk add --no-cache git build-base linux-headers && \
     git clone https://github.com/amnezia-vpn/amneziawg-tools.git /amneziawg-tools && \
-    cd /amneziawg-tools && git checkout ${AWG_RELEASE} && \
+    cd /amneziawg-tools && git checkout ${AWG_TOOLS_RELEASE} && \
     cd src && make
 
 FROM ghcr.io/linuxserver/baseimage-alpine:3.24

@@ -4,7 +4,7 @@ version: '3'
 
 vars:
   IMAGE: awg-test
-  AWG_RELEASE: v3.1.20260814
+  AWG_RELEASE: v3.1.20260828
   AWG_TOOLS_RELEASE: v3.1.20260812
 
 tasks:

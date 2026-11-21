@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 FROM golang:1.25.12 AS awg-build
-ARG AWG_RELEASE=v3.1.20260828
+ARG AWG_RELEASE=v3.1.20261116
 RUN git clone https://github.com/amnezia-vpn/amneziawg-go.git /awg && \
     cd /awg && git checkout ${AWG_RELEASE} && \
     go mod download && go mod verify && \
